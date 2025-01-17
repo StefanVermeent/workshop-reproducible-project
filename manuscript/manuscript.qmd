@@ -1,0 +1,89 @@
+---
+bibliography: ../bib-files/references.bib
+csl: ../bib-files/apa.csl
+format: 
+  docx:
+    reference-doc: ../bib-files/reference-doc.docx
+output:
+  officedown::rdocx_document:
+    page_margins:
+      bottom: 1
+      footer: 0
+      gutter: 0
+      header: 0.5
+      left: 1
+      right: 1
+editor: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r}
+#| include: false
+
+# Libraries
+library(tidyverse)
+library(flextable)
+library(ggplot2)
+
+# Analysis_objects
+
+
+# Global settings for Figures
+knitr::opts_chunk$set(
+  echo = F,
+  fig.align = "center",
+  fig.pos = "!t", 
+  out.extra = "",
+  fig.show = "asis",
+  message = FALSE,
+  tab.topcaption = T,
+  warning = FALSE
+)
+
+# Global settings for Tables
+set_flextable_defaults(
+  font.family = "Times", 
+  font.size = 10,
+  font.color = "black",
+  line_spacing = 1,
+  padding.bottom = 1, 
+  padding.top = 1,
+  padding.left = 1,
+  padding.right = 1
+)
+```
+
+# Introduction
+
+
+# Methods
+
+## Participants
+
+## Materials
+
+## Procedure
+
+
+# Results
+
+```{r}
+#| label: Figure1
+#| dpi: 300
+#| fig-cap: | 
+#|   **Figure 1.** INCLUDE TITLE HERE
+
+
+```
+
+
+# Discussion
+
+
+{{< pagebreak >}}
+
+# References
+
+::: {#refs}
+:::

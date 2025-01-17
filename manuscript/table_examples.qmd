@@ -1,0 +1,84 @@
+---
+title: "Untitled"
+format: html
+---
+
+# Double-header column
+
+Sometimes you will want to create a Table that has a double header.
+For example, you might have run two separate regression analyses with different dependent variables, let's say Mental Health and Physical Health.
+Now you want to present regression coefficients separately per DV, by including the name of the dependent variable in a second header and repeating the statistics for each of them.
+
+We have prepared the following data frame for the Table:
+
+```{r}
+set.seed(3535)
+
+double_header_data <- 
+  tibble(
+    iv = c("Predictor", "Condition", "Predictor X Condition"),
+    beta_men = runif(3, min = -0.2, max = 0.2),
+    ci_lower_men = beta_men - 0.2,
+    ci_upper_men = beta_men + 0.2,
+    p_men = runif(3, min = 0, max = 1),
+    beta_phys = runif(3, min = -0.2, max = 0.2),
+    ci_lower_phys = beta_phys - 0.2,
+    ci_upper_phys = beta_phys + 0.2,
+    p_phys = runif(3, min = 0, max = 1)
+  )
+
+double_header_data
+```
+
+We will have to prepare these data a bit more before we can build the Table:
+  1. We want to combine the lower and upper boundaries of the 95% CIs into a single column;
+  2. We want to round all numbers to two decimals;
+  3. We want to remove the leading zero of the p-values.
+  
+```{r}
+double_header_data <- double_header_data %>% 
+  mutate(
+    across(-c(iv, p_men, p_phys), ~formatC(x = ., digits = 2, format = 'f')), # Round everything except pvalues to 2 decimals
+    across(c(p_men, p_phys), ~formatC(x = ., digits = 3, format = "f") %>% str_remove("^0")), # Round pvalues to 3 decimals and remove leading zero
+    ci_men  = glue::glue("[{ci_lower_men}, {ci_upper_men}]"), # Glue allows us to include values in strings by putting their names between curly brackets ({})
+    ci_phys = glue::glue("[{ci_lower_phys}, {ci_upper_phys}]"),
+    
+    empty1 = "" # I include this to create nicely separated lines for the secondary headers. How this works will become clear in a second!
+  ) |> 
+  select(iv, beta_men, ci_men, p_men, empty1, beta_phys, ci_phys, p_phys) # remove unused CI variables
+
+double_header_data
+```
+
+ Now it's time to build the Flextable Table. Run the lines one by one to understand what each row is doing (also see the comments).
+ 
+```{r}
+double_header_data |> 
+  flextable() |> 
+  set_header_labels(
+    values = c(
+      "",
+      "\U1D6FD", # Unicode for beta symbol
+      "95% CI",
+      "p",
+      "",
+      "\U1D6FD",
+      "95% CI",
+      "p"
+    )
+  ) |> 
+  italic(i = 1, j = c(4,8), part = "header") |>  # Print the p-value column labels in italics 
+  add_header_row(values = c(" ", "Mental health", "", "", "", "Physical Health", "", "")) |> # same number of columns as first header (don't forget to count the invisible "empty1" column!)
+  merge_at(i = 1, j = 2:4, part = "header") |> # Merge the columns of the first header
+  merge_at(i = 1, j = 6:8, part = "header") |> 
+  border_remove() |>  # Remove all borders; we will draw them again ourselves
+  border(i = 1, border.top = fp_border_default(), part = "header") |> 
+  border(i = 1, j = 2:4, border.bottom = fp_border_default(), part = "header") |> # Here is where the 'empty1' magic comes in: It allows us to draw lines underneath the DV labels that do not touch!
+  border(i = 1, j = 6:8, border.bottom = fp_border_default(), part = "header") |> 
+  border(i = 2, j = 1:8, border.bottom = fp_border_default(), part = "header") |> 
+  border(i = 3, j = 1:8, border.bottom = fp_border_default(), part = "body") |> 
+  autofit()
+```
+ 
+  
+  
