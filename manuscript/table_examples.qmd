@@ -3,6 +3,12 @@ title: "Untitled"
 format: html
 ---
 
+```{r}
+library(tidyverse)
+library(flextable)
+```
+
+
 # Double-header column
 
 Sometimes you will want to create a Table that has a double header.
@@ -14,7 +20,7 @@ We have prepared the following data frame for the Table:
 ```{r}
 set.seed(3535)
 
-double_header_data <- 
+data_example1 <- 
   tibble(
     iv = c("Predictor", "Condition", "Predictor X Condition"),
     beta_men = runif(3, min = -0.2, max = 0.2),
@@ -36,7 +42,7 @@ We will have to prepare these data a bit more before we can build the Table:
   3. We want to remove the leading zero of the p-values.
   
 ```{r}
-double_header_data <- double_header_data %>% 
+data_example1 <- data_example1 %>% 
   mutate(
     across(-c(iv, p_men, p_phys), ~formatC(x = ., digits = 2, format = 'f')), # Round everything except pvalues to 2 decimals
     across(c(p_men, p_phys), ~formatC(x = ., digits = 3, format = "f") %>% str_remove("^0")), # Round pvalues to 3 decimals and remove leading zero
@@ -47,13 +53,13 @@ double_header_data <- double_header_data %>%
   ) |> 
   select(iv, beta_men, ci_men, p_men, empty1, beta_phys, ci_phys, p_phys) # remove unused CI variables
 
-double_header_data
+data_example1
 ```
 
  Now it's time to build the Flextable Table. Run the lines one by one to understand what each row is doing (also see the comments).
  
 ```{r}
-double_header_data |> 
+table1 <- data_example1 |> 
   flextable() |> 
   set_header_labels(
     values = c(
@@ -78,7 +84,96 @@ double_header_data |>
   border(i = 2, j = 1:8, border.bottom = fp_border_default(), part = "header") |> 
   border(i = 3, j = 1:8, border.bottom = fp_border_default(), part = "body") |> 
   autofit()
+
+table1
 ```
  
   
+# Row headers in the first column
+
+Let's expand the previous Table a bit more.
+Another situation that I encounter quite a lot is that I want to include labels in the first column.
+Imagine that rather than having only one model per outcome measure, we have two models.
+This would mean that we have double the amount of rows: we would first have the two main effects and interaction for model 1, and then those same variables repeated for model 2. 
+In such a case, it would be useful to include a row that simply states "Model 1:" and "Model 2:".
+
+We'll simulate the data for this second model the same way as we did before.
+
+```{r}
+set.seed(3535)
+
+data_example2 <- tibble(
+    iv = c("Predictor", "Condition", "Predictor X Condition"),
+    beta_men = runif(3, min = -0.2, max = 0.2),
+    ci_lower_men = beta_men - 0.2,
+    ci_upper_men = beta_men + 0.2,
+    p_men = runif(3, min = 0, max = 1),
+    beta_phys = runif(3, min = -0.2, max = 0.2),
+    ci_lower_phys = beta_phys - 0.2,
+    ci_upper_phys = beta_phys + 0.2,
+    p_phys = runif(3, min = 0, max = 1)
+  ) |> 
+  mutate(
+    across(-c(iv, p_men, p_phys), ~formatC(x = ., digits = 2, format = 'f')), 
+    across(c(p_men, p_phys), ~formatC(x = ., digits = 3, format = "f") %>% str_remove("^0")), 
+    ci_men  = glue::glue("[{ci_lower_men}, {ci_upper_men}]"), 
+    ci_phys = glue::glue("[{ci_lower_phys}, {ci_upper_phys}]"),
+    
+    empty1 = "" 
+  ) |> 
+  select(iv, beta_men, ci_men, p_men, empty1, beta_phys, ci_phys, p_phys) 
+```
+
+And then we combine it with the first dataset so that we have one dataset containing the statistics for Model 1 and Model 2.
+
+```{r}
+data_example2 <- bind_rows(data_example1, data_example2)
+
+data_example2
+```
+
+Of course, it would be confusing to just present these statistics as is.
+How is the reader supposed to know how row 1 differs from row 4, and how row 3 differs from row 6?
+To make this clearer, we want to add labels specifying the two models, one above the first set of parameters and one above the second set of parameters. 
+We can do this very easily by using `dplyr::add_row()`:
+
+```{r}
+data_example2 <- data_example2 |> 
+  add_row(iv = "Model 1", .before = 1) |>  # Add a row before the current first row with value "Model 1" for variable iv
+  add_row(iv = "Model 2", .before = 5) # Note that all the rows shifted because of the first `add_row()` line.
+```
+
+Now let's recreate the Table including these headers.
+To make it even more clear, we will print the model labels in bold, and slightly indent the parameter names (see row 168 and 169).
+
+```{r}
+data_example2 |> 
+  flextable() |> 
+  set_header_labels(
+    values = c(
+      "",
+      "\U1D6FD", 
+      "95% CI",
+      "p",
+      "",
+      "\U1D6FD",
+      "95% CI",
+      "p"
+    )
+  ) |> 
+  italic(i = 1, j = c(4,8), part = "header") |>  
+  add_header_row(values = c(" ", "Mental health", "", "", "", "Physical Health", "", "")) |>
+  merge_at(i = 1, j = 2:4, part = "header") |> 
+  merge_at(i = 1, j = 6:8, part = "header") |> 
+  bold(i = c(1, 5), j = 1) |> # Print row 1 and 5 (i) of only the first column (j) in bold
+  padding(i = c(2:4, 6:8), j = 1, padding = 15) |>  # indent all parameter rows (i) of the first column (j).
   
+  border_remove() |> 
+  border(i = 1, border.top = fp_border_default(), part = "header") |> 
+  border(i = 1, j = 2:4, border.bottom = fp_border_default(), part = "header") |> 
+  border(i = 1, j = 6:8, border.bottom = fp_border_default(), part = "header") |> 
+  border(i = 2, j = 1:8, border.bottom = fp_border_default(), part = "header") |> 
+  border(i = 8, j = 1:8, border.bottom = fp_border_default(), part = "body") |> 
+  autofit()
+```
+
