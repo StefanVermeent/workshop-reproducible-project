@@ -56,15 +56,15 @@ set_flextable_defaults(
 
 # Introduction
 
-
 # Methods
 
 ## Participants
 
+[@ahmed2018]
+
 ## Materials
 
 ## Procedure
-
 
 # Results
 
@@ -77,9 +77,7 @@ set_flextable_defaults(
 
 ```
 
-
 # Discussion
-
 
 {{< pagebreak >}}
 
@@ -87,3 +85,5 @@ set_flextable_defaults(
 
 ::: {#refs}
 :::
+
+if you type here, 𝞫
